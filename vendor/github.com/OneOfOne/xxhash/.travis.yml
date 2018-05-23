@@ -1,0 +1,11 @@
+language: go
+sudo: false
+
+go:
+  - 1.8
+  - 1.9rc2
+  - tip
+
+script:
+  - go test -tags safe ./...
+  - go test ./...
