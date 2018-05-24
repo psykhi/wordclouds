@@ -1,6 +1,6 @@
 {
   "font_max_size": 300,
-  "font_min_size": 20,
+  "font_min_size": 30,
   "font_file":"./fonts/roboto/Roboto-Regular.ttf",
   "width":2048,
   "height":2048,

@@ -153,8 +153,8 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	grid := NewSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
 
 	for _, b := range opts.mask {
-		dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
-		dc.Stroke()
+		//dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
+		//dc.Stroke()
 		grid.Add(b)
 	}
 	return &Wordcloud{
