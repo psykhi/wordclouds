@@ -1,5 +1,7 @@
 Wordclouds in go.
 
+![alt text](cmd/example/images/output.png "Example")
+
 # How to use
 ```go
 wordCounts := map[string]int{"important":42,"noteworthy":30,"meh":3}
