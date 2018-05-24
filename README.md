@@ -1,8 +1,6 @@
 Wordclouds in go.
 
-![alt text](cmd/example/images/output.png "Example")
-
-#How to use
+# How to use
 ```go
 wordCounts := map[string]int{"important":42,"noteworthy":30,"meh":3}
 w := wordclouds.NewWordcloud(
@@ -39,7 +37,7 @@ boxes = wordclouds.Mask(
 See the example folder for a fully working implementation.
 
 
-#Speed
+# Speed
 Most wordclouds should take a few seconds to be generated. A spatial hashmap is used to find potential collisions.
 
 There are two possible placement algorithm choices:
