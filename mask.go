@@ -1,6 +1,7 @@
 package wordclouds
 
 import (
+	"fmt"
 	"github.com/fogleman/gg"
 	"image/color"
 	"math"
@@ -63,12 +64,14 @@ func Mask(path string, width int, height int, exclude color.RGBA) []*Box {
 			er, eg, eb, ea := exclude.RGBA()
 
 			if r == er && g == eg && b == eb && a == ea {
-				res = append(res, &Box{
-					float64(j+step)*scalingRatio + yoffset,
+				b := &Box{
+					math.Min(float64(j+step)*scalingRatio+yoffset, float64(height)),
 					float64(i)*scalingRatio + xoffset,
-					float64(i+step)*scalingRatio + xoffset,
+					math.Min(float64(i+step)*scalingRatio+xoffset, float64(width)),
 					float64(j)*scalingRatio + yoffset,
-				})
+				}
+				fmt.Println(b)
+				res = append(res, b)
 			}
 		}
 	}

@@ -151,11 +151,10 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	dc.Clear()
 	dc.SetRGB(0, 0, 0)
 	grid := NewSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
-	//grid := NewNaiveGrid()
 
 	for _, b := range opts.mask {
-		//dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
-		//dc.Stroke()
+		dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
+		dc.Stroke()
 		grid.Add(b)
 	}
 	return &Wordcloud{
@@ -169,6 +168,10 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		height:          float64(opts.Height),
 		opts:            opts,
 	}
+}
+func (w *Wordcloud) BoundingBoxes() []*Box {
+	//return w.grid.All()
+	return nil
 }
 
 func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {

@@ -1,6 +1,8 @@
 package wordclouds
 
-import "github.com/satori/go.uuid"
+import (
+	"github.com/satori/go.uuid"
+)
 
 type uniqueBox struct {
 	uuid.UUID
@@ -8,24 +10,18 @@ type uniqueBox struct {
 }
 
 type spatialHashMap struct {
-	mat [][][]*uniqueBox
-	rw  float64
-	rh  float64
+	mat      [][][]*uniqueBox
+	rw       float64
+	rh       float64
+	gridSize int
 }
 
-func (s *spatialHashMap) Candidates(b *Box) []*Box {
-	res := make([]*Box, 0, 16)
-	top, left, right, bottom := s.toGridCoords(b)
-	for i := left; i <= right; i++ {
-		for j := bottom; j <= top; j++ {
-			for _, ub := range s.mat[i][j] {
-				res = append(res, ub.b)
-			}
-
-		}
-	}
-	return res
-}
+//func (s *spatialHashMap) Len() int {
+//	total := 0
+//	for i := 0; i < len(s.mat); i++ {
+//
+//	}
+//}
 
 func (s *spatialHashMap) TestCollision(b *Box, test func(a *Box, b *Box) bool) (bool, int) {
 	overlaps := 0
@@ -57,21 +53,30 @@ func NewSpatialHashMap(windowWidth float64, windowHeight float64, gridSize int) 
 	rw := windowWidth / float64(gridSize)
 	rh := windowHeight / float64(gridSize)
 
-	mat := make([][][]*uniqueBox, int(windowWidth))
-	for i := 0; i < int(windowWidth); i++ {
-		mat[i] = make([][]*uniqueBox, int(windowHeight))
-		for j := 0; j < int(windowHeight); j++ {
+	mat := make([][][]*uniqueBox, gridSize)
+	for i := 0; i < gridSize; i++ {
+		mat[i] = make([][]*uniqueBox, gridSize)
+		for j := 0; j < gridSize; j++ {
 			mat[i][j] = make([]*uniqueBox, 0)
 		}
 	}
 
 	return &spatialHashMap{
-		mat: mat,
-		rw:  rw,
-		rh:  rh,
+		mat:      mat,
+		rw:       rw,
+		rh:       rh,
+		gridSize: gridSize,
 	}
 }
 
+func min(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func (s *spatialHashMap) toGridCoords(b *Box) (int, int, int, int) {
-	return int(b.top / s.rh), int(b.left / s.rw), int(b.right / s.rw), int(b.bottom / s.rh)
+
+	return min(int(b.top/s.rh), s.gridSize-1), int(b.left / s.rw), min(int(b.right/s.rw), s.gridSize-1), int(b.bottom / s.rh)
 }
