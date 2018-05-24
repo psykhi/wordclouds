@@ -1,7 +1,6 @@
 package wordclouds
 
 import (
-	"fmt"
 	"github.com/fogleman/gg"
 	"image/color"
 	"math"
@@ -70,7 +69,6 @@ func Mask(path string, width int, height int, exclude color.RGBA) []*Box {
 					math.Min(float64(i+step)*scalingRatio+xoffset, float64(width)),
 					float64(j)*scalingRatio + yoffset,
 				}
-				fmt.Println(b)
 				res = append(res, b)
 			}
 		}

@@ -77,6 +77,5 @@ func min(a int, b int) int {
 }
 
 func (s *spatialHashMap) toGridCoords(b *Box) (int, int, int, int) {
-
 	return min(int(b.top/s.rh), s.gridSize-1), int(b.left / s.rw), min(int(b.right/s.rw), s.gridSize-1), int(b.bottom / s.rh)
 }
