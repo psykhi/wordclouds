@@ -15,7 +15,7 @@ img := w.Draw()
 ```
 
 # Options
-- Futput height and width
+- Output height and width
 - Font: Must be a valid TTF files.
 - Font max,min size
 - Colors
