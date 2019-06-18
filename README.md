@@ -47,3 +47,6 @@ There are two possible placement algorithm choices:
 If it can't find a spot after 500000 tries, it gives up and moves on to the next word.
 2. Spiral: the algorithm starts to place the words on concentric circles starting at the center of the image.
 
+# Contributing
+Feel free to create pull requests, I'll gladly review them!
+
