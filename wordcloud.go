@@ -2,12 +2,13 @@ package wordclouds
 
 import (
 	"fmt"
-	"github.com/fogleman/gg"
 	"image"
 	"image/color"
 	"math"
 	"math/rand"
 	"sort"
+
+	"github.com/fogleman/gg"
 )
 
 type WordCount struct {
