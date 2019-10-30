@@ -113,4 +113,5 @@ fabric.properties
 
 # End of https://www.gitignore.io/api/go,jetbrains
 
+# Don't include and IDEA settings
 .idea
