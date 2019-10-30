@@ -16,13 +16,6 @@ type spatialHashMap struct {
 	gridSize int
 }
 
-//func (s *spatialHashMap) Len() int {
-//	total := 0
-//	for i := 0; i < len(s.mat); i++ {
-//
-//	}
-//}
-
 func (s *spatialHashMap) TestCollision(b *Box, test func(a *Box, b *Box) bool) (bool, int) {
 	overlaps := 0
 	top, left, right, bottom := s.toGridCoords(b)
@@ -49,7 +42,7 @@ func (s *spatialHashMap) Add(b *Box) {
 	}
 }
 
-func NewSpatialHashMap(windowWidth float64, windowHeight float64, gridSize int) *spatialHashMap {
+func newSpatialHashMap(windowWidth float64, windowHeight float64, gridSize int) *spatialHashMap {
 	rw := windowWidth / float64(gridSize)
 	rh := windowHeight / float64(gridSize)
 

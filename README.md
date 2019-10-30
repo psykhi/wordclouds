@@ -49,8 +49,8 @@ See the example folder for a fully working implementation.
 Most wordclouds should take a few seconds to be generated. A spatial hashmap is used to find potential collisions.
 
 There are two possible placement algorithm choices:
-1. Random: the algorithms randomly tries to place the word anywhere in the image space. 
-If it can't find a spot after 500000 tries, it gives up and moves on to the next word.
+1. Random: the algorithms randomly tries to place the word anywhere in the image space.
+   - If it can't find a spot after 500000 tries, it gives up and moves on to the next word.
 2. Spiral: the algorithm starts to place the words on concentric circles starting at the center of the image.
 
 # Contributing

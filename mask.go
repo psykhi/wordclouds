@@ -1,11 +1,13 @@
 package wordclouds
 
 import (
-	"github.com/fogleman/gg"
 	"image/color"
 	"math"
+
+	"github.com/fogleman/gg"
 )
 
+// Mask creates a slice of box structs from a given mask image to be passed to wordclouds.MaskBoxes.
 func Mask(path string, width int, height int, exclude color.RGBA) []*Box {
 	res := make([]*Box, 0)
 

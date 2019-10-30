@@ -151,7 +151,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	dc.SetRGB(1, 1, 1)
 	dc.Clear()
 	dc.SetRGB(0, 0, 0)
-	grid := NewSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
+	grid := newSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
 
 	for _, b := range opts.mask {
 		//dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
@@ -301,7 +301,7 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 
 	for searching && radius < maxRadius {
 		radius = radius + 5
-		c := NewCircle(w.width/2, w.height/2, radius, 512)
+		c := newCircle(w.width/2, w.height/2, radius, 512)
 		pts := c.positions()
 
 		for _, p := range pts {
