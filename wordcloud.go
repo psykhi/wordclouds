@@ -198,7 +198,7 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 
 func (w *Wordcloud) Draw() image.Image {
 	consecutiveMisses := 0
-	for i, wc := range w.sortedWordList {
+	for _, wc := range w.sortedWordList {
 		c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 		w.dc.SetColor(c)
 
@@ -218,10 +218,10 @@ func (w *Wordcloud) Draw() image.Image {
 		height += 5
 		x, y, space, overlaps := w.nextPos(width, height)
 		if !space {
-			fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
+			// fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
-				fmt.Println("No space left. Done.")
+				// fmt.Println("No space left. Done.")
 				return w.dc.Image()
 			}
 			continue
@@ -251,7 +251,7 @@ func (w *Wordcloud) Draw() image.Image {
 
 		//placed, overlaps := w.AddWord(wc.word, wc.count)
 		//if placed {
-		fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
+		// fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
 		//fmt.Printf("Grid: %d boxes\n",)
 		//} else {
 		//	fmt.Printf("Word %s skipped\n", wc.word)
