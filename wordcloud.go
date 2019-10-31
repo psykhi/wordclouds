@@ -2,12 +2,13 @@ package wordclouds
 
 import (
 	"fmt"
-	"github.com/fogleman/gg"
 	"image"
 	"image/color"
 	"math"
 	"math/rand"
 	"sort"
+
+	"github.com/fogleman/gg"
 )
 
 type WordCount struct {
@@ -150,7 +151,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	dc.SetRGB(1, 1, 1)
 	dc.Clear()
 	dc.SetRGB(0, 0, 0)
-	grid := NewSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
+	grid := newSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
 
 	for _, b := range opts.mask {
 		//dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
@@ -197,7 +198,7 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 
 func (w *Wordcloud) Draw() image.Image {
 	consecutiveMisses := 0
-	for i, wc := range w.sortedWordList {
+	for _, wc := range w.sortedWordList {
 		c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 		w.dc.SetColor(c)
 
@@ -217,10 +218,10 @@ func (w *Wordcloud) Draw() image.Image {
 		height += 5
 		x, y, space, overlaps := w.nextPos(width, height)
 		if !space {
-			fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
+			// fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
-				fmt.Println("No space left. Done.")
+				// fmt.Println("No space left. Done.")
 				return w.dc.Image()
 			}
 			continue
@@ -250,7 +251,7 @@ func (w *Wordcloud) Draw() image.Image {
 
 		//placed, overlaps := w.AddWord(wc.word, wc.count)
 		//if placed {
-		fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
+		// fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
 		//fmt.Printf("Grid: %d boxes\n",)
 		//} else {
 		//	fmt.Printf("Word %s skipped\n", wc.word)
@@ -300,7 +301,7 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 
 	for searching && radius < maxRadius {
 		radius = radius + 5
-		c := NewCircle(w.width/2, w.height/2, radius, 512)
+		c := newCircle(w.width/2, w.height/2, radius, 512)
 		pts := c.positions()
 
 		for _, p := range pts {

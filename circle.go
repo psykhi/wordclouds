@@ -2,20 +2,20 @@ package wordclouds
 
 import "math"
 
-type Circle struct {
+type circle struct {
 	cx       float64
 	cy       float64
 	radius   float64
 	step     int
 	maxSteps int
 }
-type Point struct {
+type point struct {
 	x float64
 	y float64
 }
 
-func NewCircle(cx float64, cy float64, radius float64, maxSteps int) *Circle {
-	return &Circle{
+func newCircle(cx float64, cy float64, radius float64, maxSteps int) *circle {
+	return &circle{
 		cx:       cx,
 		cy:       cy,
 		radius:   radius,
@@ -24,8 +24,8 @@ func NewCircle(cx float64, cy float64, radius float64, maxSteps int) *Circle {
 	}
 }
 
-func (c *Circle) positions() []Point {
-	pts := make([]Point, c.maxSteps, c.maxSteps)
+func (c *circle) positions() []point {
+	pts := make([]point, c.maxSteps, c.maxSteps)
 	for i := 0; i < c.maxSteps; i++ {
 		pts[i].x = c.cx + c.radius*math.Cos(float64(i)*(2*math.Pi/float64(c.maxSteps)))
 		pts[i].y = c.cy + c.radius*math.Sin(float64(i)*(2*math.Pi/float64(c.maxSteps)))
