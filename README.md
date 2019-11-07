@@ -1,6 +1,6 @@
 Wordclouds in go.
 
-![alt text](cmd/example/images/output.png "Example")
+![alt text](example/output.png "Example")
 
 # How to use
 
