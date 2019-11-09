@@ -59,6 +59,7 @@ type Wordcloud struct {
 	width           float64
 	height          float64
 	opts            Options
+	circles         map[float64]*circle
 }
 
 type Options struct {
@@ -168,11 +169,8 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		width:           float64(opts.Width),
 		height:          float64(opts.Height),
 		opts:            opts,
+		circles:         make(map[float64]*circle),
 	}
-}
-func (w *Wordcloud) BoundingBoxes() []*Box {
-	//return w.grid.All()
-	return nil
 }
 
 func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
@@ -194,6 +192,16 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 		}
 	}
 	return res
+}
+
+func (w *Wordcloud) circle(radius float64) *circle {
+	c, ok := w.circles[radius]
+	if !ok {
+		c := newCircle(w.width/2, w.height/2, radius, 512)
+		w.circles[radius] = c
+		return c
+	}
+	return c
 }
 
 func (w *Wordcloud) Place(wc WordCount) bool {
@@ -287,6 +295,9 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 			box.right = x + width/2
 			box.bottom = y - height/2
 
+			w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
+			w.dc.Stroke()
+
 			if !box.fits(w.width, w.height) {
 				continue
 			}
@@ -310,10 +321,9 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 
 	for searching && radius < maxRadius {
 		radius = radius + 5
-		c := newCircle(w.width/2, w.height/2, radius, 512)
-		pts := c.positions()
+		c := w.circle(radius)
 
-		for _, p := range pts {
+		for _, p := range c.positions() {
 			y = p.y
 			x = p.x
 
@@ -323,6 +333,10 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 			box.left = x - width/2
 			box.right = x + width/2
 			box.bottom = y - height/2
+
+			//w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
+			//w.dc.Stroke()
+
 			if !box.fits(w.width, w.height) {
 				continue
 			}
