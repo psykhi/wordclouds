@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime/pprof"

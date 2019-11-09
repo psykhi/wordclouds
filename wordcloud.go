@@ -79,7 +79,7 @@ var DefaultOptions = Options{
 	RandomPlacement: false,
 	FontFile:        "",
 	Colors:          []color.Color{color.RGBA{0, 0, 0, 0}},
-	BackgroundColor: color.RGBA{0xff, 0xff, 0xff, 0xff},
+	BackgroundColor: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	Width:           2048,
 	Height:          2048,
 	mask:            make([]*Box, 0),
@@ -196,29 +196,67 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 	return res
 }
 
-func (w *Wordcloud) Draw() image.Image {
-	consecutiveMisses := 0
-	for _, wc := range w.sortedWordList {
-		c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
-		w.dc.SetColor(c)
+func (w *Wordcloud) Place(wc WordCount) bool {
+	c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
+	w.dc.SetColor(c)
 
-		size := float64(w.opts.FontMaxSize) * (float64(wc.count) / float64(w.sortedWordList[0].count))
+	size := float64(w.opts.FontMaxSize) * (float64(wc.count) / float64(w.sortedWordList[0].count))
+	if err := w.dc.LoadFontFace(w.opts.FontFile, size); err != nil {
+		panic(err)
+	}
+	if size < float64(w.opts.FontMinSize) {
+		size = float64(w.opts.FontMinSize)
 		if err := w.dc.LoadFontFace(w.opts.FontFile, size); err != nil {
 			panic(err)
 		}
-		if size < float64(w.opts.FontMinSize) {
-			size = float64(w.opts.FontMinSize)
-			if err := w.dc.LoadFontFace(w.opts.FontFile, size); err != nil {
-				panic(err)
-			}
-		}
-		width, height := w.dc.MeasureString(wc.word)
+	}
+	width, height := w.dc.MeasureString(wc.word)
 
-		width += 5
-		height += 5
-		x, y, space, overlaps := w.nextPos(width, height)
-		if !space {
-			// fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
+	width += 5
+	height += 5
+	x, y, space, overlaps := w.nextPos(width, height)
+	if !space {
+		// fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
+		return false
+	}
+	w.dc.DrawStringAnchored(wc.word, x, y, 0.5, 0.5)
+	w.overlapCount += overlaps
+
+	box := &Box{
+		y + height/2 + 0.3*height,
+		x - width/2,
+		x + width/2,
+		math.Max(y-height/2, 0),
+	}
+	if height > 40 {
+		preciseBoxes := w.getPreciseBoundingBoxes(box)
+		for _, pb := range preciseBoxes {
+			w.grid.Add(pb)
+			//w.dc.DrawRectangle(pb.x(), pb.y(), pb.w(), pb.h())
+			//w.dc.Stroke()
+		}
+	} else {
+		w.grid.Add(box)
+	}
+
+	//
+
+	//placed, overlaps := w.AddWord(wc.word, wc.count)
+	//if placed {
+	// fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
+	//fmt.Printf("Grid: %d boxes\n",)
+	//} else {
+	//	fmt.Printf("Word %s skipped\n", wc.word)
+	//}
+
+	return true
+}
+
+func (w *Wordcloud) Draw() image.Image {
+	consecutiveMisses := 0
+	for _, wc := range w.sortedWordList {
+		success := w.Place(wc)
+		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
 				// fmt.Println("No space left. Done.")
@@ -227,35 +265,6 @@ func (w *Wordcloud) Draw() image.Image {
 			continue
 		}
 		consecutiveMisses = 0
-		w.dc.DrawStringAnchored(wc.word, x, y, 0.5, 0.5)
-		w.overlapCount += overlaps
-
-		box := &Box{
-			y + height/2 + 0.3*height,
-			x - width/2,
-			x + width/2,
-			math.Max(y-height/2, 0),
-		}
-		if height > 40 {
-			preciseBoxes := w.getPreciseBoundingBoxes(box)
-			for _, pb := range preciseBoxes {
-				w.grid.Add(pb)
-				//w.dc.DrawRectangle(pb.x(), pb.y(), pb.w(), pb.h())
-				//w.dc.Stroke()
-			}
-		} else {
-			w.grid.Add(box)
-		}
-
-		//
-
-		//placed, overlaps := w.AddWord(wc.word, wc.count)
-		//if placed {
-		// fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
-		//fmt.Printf("Grid: %d boxes\n",)
-		//} else {
-		//	fmt.Printf("Word %s skipped\n", wc.word)
-		//}
 	}
 	//fmt.Printf("%d overlap count\n", w.overlapCount)
 	//fmt.Printf("%d overlap count\n", w.overlapCount)
@@ -266,22 +275,22 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 	searching := true
 	space = false
 
+	var box Box
 	if w.randomPlacement {
 		tries := 0
 		for searching && tries < 500000 {
 			tries++
 			x, y = float64(rand.Intn(w.dc.Width())), float64(rand.Intn(w.dc.Height()))
 			// Is that position available?
-			box := &Box{
-				y + height/2,
-				x - width/2,
-				x + width/2,
-				y - height/2,
-			}
+			box.top = y + height/2
+			box.left = x - width/2
+			box.right = x + width/2
+			box.bottom = y - height/2
+
 			if !box.fits(w.width, w.height) {
 				continue
 			}
-			colliding, overlapTests := w.grid.TestCollision(box, func(a *Box, b *Box) bool {
+			colliding, overlapTests := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
 				return a.overlaps(b)
 			})
 			overlaps = overlapTests
@@ -309,16 +318,15 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 			x = p.x
 
 			// Is that position available?
-			box := &Box{
-				y + height/2,
-				x - width/2,
-				x + width/2,
-				y - height/2,
-			}
+
+			box.top = y + height/2
+			box.left = x - width/2
+			box.right = x + width/2
+			box.bottom = y - height/2
 			if !box.fits(w.width, w.height) {
 				continue
 			}
-			colliding, overlapTests := w.grid.TestCollision(box, func(a *Box, b *Box) bool {
+			colliding, overlapTests := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
 				return a.overlaps(b)
 			})
 			overlaps = overlapTests
