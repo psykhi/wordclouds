@@ -2,14 +2,15 @@ package wordclouds
 
 import (
 	"fmt"
+	"github.com/fogleman/gg"
 	"golang.org/x/image/font"
 	"image"
 	"image/color"
 	"math"
 	"math/rand"
+	"runtime"
 	"sort"
-
-	"github.com/fogleman/gg"
+	"sync"
 )
 
 type WordCount struct {
@@ -62,6 +63,7 @@ type Wordcloud struct {
 	opts            Options
 	circles         map[float64]*circle
 	fonts           map[float64]font.Face
+	radii           []float64
 }
 
 type Options struct {
@@ -161,6 +163,17 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		//dc.Stroke()
 		grid.Add(b)
 	}
+
+	radius := 1.0
+	maxRadius := math.Sqrt(float64(opts.Width*opts.Width + opts.Height*opts.Height))
+	circles := make(map[float64]*circle)
+	radii := make([]float64, 0)
+	for radius < maxRadius {
+		circles[radius] = newCircle(float64(opts.Width/2), float64(opts.Height/2), radius, 512)
+		radii = append(radii, radius)
+		radius = radius + 5.0
+	}
+
 	return &Wordcloud{
 		wordList:        wordList,
 		sortedWordList:  sortedWordList,
@@ -171,8 +184,9 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		width:           float64(opts.Width),
 		height:          float64(opts.Height),
 		opts:            opts,
-		circles:         make(map[float64]*circle),
+		circles:         circles,
 		fonts:           make(map[float64]font.Face),
+		radii:           radii,
 	}
 }
 
@@ -195,16 +209,6 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 		}
 	}
 	return res
-}
-
-func (w *Wordcloud) circle(radius float64) *circle {
-	c, ok := w.circles[radius]
-	if !ok {
-		c := newCircle(w.width/2, w.height/2, radius, 512)
-		w.circles[radius] = c
-		return c
-	}
-	return c
 }
 
 func (w *Wordcloud) setFont(size float64) {
@@ -234,13 +238,12 @@ func (w *Wordcloud) Place(wc WordCount) bool {
 
 	width += 5
 	height += 5
-	x, y, space, overlaps := w.nextPos(width, height)
+	x, y, space := w.nextPos(width, height)
 	if !space {
 		// fmt.Printf("(%d/%d) Could not place word %s\n", i, len(w.sortedWordList), wc.word)
 		return false
 	}
 	w.dc.DrawStringAnchored(wc.word, x, y, 0.5, 0.5)
-	w.overlapCount += overlaps
 
 	box := &Box{
 		y + height/2 + 0.3*height,
@@ -258,17 +261,6 @@ func (w *Wordcloud) Place(wc WordCount) bool {
 	} else {
 		w.grid.Add(box)
 	}
-
-	//
-
-	//placed, overlaps := w.AddWord(wc.word, wc.count)
-	//if placed {
-	// fmt.Printf("(%d/%d) %s: %d occurences, %d collision tests. x %f y %f h %f\n", i, len(w.sortedWordList), wc.word, wc.count, overlaps, x, y, height)
-	//fmt.Printf("Grid: %d boxes\n",)
-	//} else {
-	//	fmt.Printf("Word %s skipped\n", wc.word)
-	//}
-
 	return true
 }
 
@@ -279,20 +271,23 @@ func (w *Wordcloud) Draw() image.Image {
 		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
-				fmt.Println("No space left. Done.")
-				fmt.Printf("%d overlap count\n", w.overlapCount)
 				return w.dc.Image()
 			}
 			continue
 		}
 		consecutiveMisses = 0
 	}
-	//fmt.Printf("%d overlap count\n", w.overlapCount)
-	fmt.Printf("%d overlap count\n", w.overlapCount)
 	return w.dc.Image()
 }
 
-func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64, space bool, overlaps int) {
+type workerData struct {
+	radius    float64
+	positions []point
+	width     float64
+	height    float64
+}
+
+func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64, space bool) {
 	searching := true
 	space = false
 
@@ -314,10 +309,9 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 			if !box.fits(w.width, w.height) {
 				continue
 			}
-			colliding, overlapTests := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
+			colliding, _ := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
 				return a.overlaps(b)
 			})
-			overlaps = overlapTests
 
 			if !colliding {
 				space = true
@@ -329,43 +323,149 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 	}
 
 	x, y = w.width, w.height
-	radius := 1.0
-	maxRadius := math.Sqrt(w.width*w.width + w.height*w.height)
 
-	for searching && radius < maxRadius {
-		radius = radius + 5
-		c := w.circle(radius)
+	resCh := make(chan res, 10000)
+	dataCh := make(chan workerData, runtime.NumCPU())
+	results := make(map[float64]res)
+	done := make(map[float64]bool)
+	stopChannels := make([]chan struct{}, 0)
+	wg := sync.WaitGroup{}
 
-		for _, p := range c.positions() {
-			y = p.y
-			x = p.x
-
-			// Is that position available?
-
-			box.top = y + height/2
-			box.left = x - width/2
-			box.right = x + width/2
-			box.bottom = y - height/2
-
-			//w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
-			//w.dc.Stroke()
-
-			if !box.fits(w.width, w.height) {
-				continue
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		stopCh := make(chan struct{}, 1)
+		go func(ch chan struct{}) {
+			defer wg.Done()
+			for {
+				select {
+				case d, ok := <-dataCh:
+					//fmt.Println("data received")
+					if !ok {
+						//fmt.Println("bye bye")
+						return
+					}
+					w.testRadius(d.radius, d.positions, d.width, d.height, resCh)
+				//fmt.Println("yo")
+				case <-ch:
+					//fmt.Println("bye")
+					return
+				}
 			}
-			colliding, overlapTests := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
-				return a.overlaps(b)
-			})
-			overlaps = overlapTests
+		}(stopCh)
+		stopChannels = append(stopChannels, stopCh)
+	}
 
-			if !colliding {
-				space = true
-				searching = false
-				return
+	go func() {
+		for _, r := range w.radii {
+			c := w.circles[r]
+			//fmt.Println("will start")
+			dataCh <- workerData{
+				radius:    r,
+				positions: c.positions(),
+				width:     width,
+				height:    height,
 			}
 		}
+		//fmt.Println("closing")
+		close(dataCh)
+	}()
+
+	for d := range resCh {
+		//fmt.Println("received", d)
+		results[d.radius] = d
+		done[d.radius] = true
+		//check if we need to continue
+		failed := true
+		for _, r := range w.radii {
+			if !done[r] {
+				//fmt.Println("not done!", r)
+				failed = false
+				break
+			}
+			if !results[r].failed {
+				//fmt.Println("wooo")
+				for _, c := range stopChannels {
+					c <- struct{}{}
+				}
+				//fmt.Println("now waiting")
+				wg.Wait()
+				return results[r].x, results[r].y, true
+			}
+		}
+
+		//fmt.Println("out")
+		// We tried it all
+		if failed {
+			for _, c := range stopChannels {
+				c <- struct{}{}
+			}
+			//fmt.Println("Failed to place")
+			wg.Wait()
+			return
+		}
+
+		//fmt.Println(d)
 	}
+	//fmt.Println("NOOOOO")
+	for _, c := range stopChannels {
+		c <- struct{}{}
+	}
+	wg.Wait()
 	return
+}
+
+type res struct {
+	radius float64
+	x      float64
+	y      float64
+	failed bool
+}
+
+func (w *Wordcloud) testRadius(radius float64, points []point, width float64, height float64, ch chan res) {
+	var box Box
+	var x, y float64
+
+	//fmt.Println("starting", radius)
+	for _, p := range points {
+		y = p.y
+		x = p.x
+
+		// Is that position available?
+
+		box.top = y + height/2
+		box.left = x - width/2
+		box.right = x + width/2
+		box.bottom = y - height/2
+
+		//w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
+		//w.dc.Stroke()
+
+		if !box.fits(w.width, w.height) {
+			continue
+		}
+		colliding, _ := w.grid.TestCollision(&box, func(a *Box, b *Box) bool {
+			return a.overlaps(b)
+		})
+
+		if !colliding {
+			//space = true
+			//fmt.Println("ok", radius)
+			ch <- res{
+				x:      x,
+				y:      y,
+				failed: false,
+				radius: radius,
+			}
+			return
+		}
+	}
+	//fmt.Println("nope", radius)
+	ch <- res{
+		x:      x,
+		y:      y,
+		failed: true,
+		radius: radius,
+	}
 }
 
 func (b *Box) fits(width float64, height float64) bool {
