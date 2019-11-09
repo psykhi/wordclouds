@@ -2,6 +2,7 @@ package wordclouds
 
 import (
 	"fmt"
+	"golang.org/x/image/font"
 	"image"
 	"image/color"
 	"math"
@@ -60,6 +61,7 @@ type Wordcloud struct {
 	height          float64
 	opts            Options
 	circles         map[float64]*circle
+	fonts           map[float64]font.Face
 }
 
 type Options struct {
@@ -170,6 +172,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		height:          float64(opts.Height),
 		opts:            opts,
 		circles:         make(map[float64]*circle),
+		fonts:           make(map[float64]font.Face),
 	}
 }
 
@@ -204,20 +207,29 @@ func (w *Wordcloud) circle(radius float64) *circle {
 	return c
 }
 
+func (w *Wordcloud) setFont(size float64) {
+	_, ok := w.fonts[size]
+
+	if !ok {
+		f, err := gg.LoadFontFace(w.opts.FontFile, size)
+		if err != nil {
+			panic(err)
+		}
+		w.fonts[size] = f
+	}
+	w.dc.SetFontFace(w.fonts[size])
+}
+
 func (w *Wordcloud) Place(wc WordCount) bool {
 	c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 	w.dc.SetColor(c)
 
 	size := float64(w.opts.FontMaxSize) * (float64(wc.count) / float64(w.sortedWordList[0].count))
-	if err := w.dc.LoadFontFace(w.opts.FontFile, size); err != nil {
-		panic(err)
-	}
+
 	if size < float64(w.opts.FontMinSize) {
 		size = float64(w.opts.FontMinSize)
-		if err := w.dc.LoadFontFace(w.opts.FontFile, size); err != nil {
-			panic(err)
-		}
 	}
+	w.setFont(size)
 	width, height := w.dc.MeasureString(wc.word)
 
 	width += 5
@@ -267,7 +279,8 @@ func (w *Wordcloud) Draw() image.Image {
 		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
-				// fmt.Println("No space left. Done.")
+				fmt.Println("No space left. Done.")
+				fmt.Printf("%d overlap count\n", w.overlapCount)
 				return w.dc.Image()
 			}
 			continue
@@ -275,7 +288,7 @@ func (w *Wordcloud) Draw() image.Image {
 		consecutiveMisses = 0
 	}
 	//fmt.Printf("%d overlap count\n", w.overlapCount)
-	//fmt.Printf("%d overlap count\n", w.overlapCount)
+	fmt.Printf("%d overlap count\n", w.overlapCount)
 	return w.dc.Image()
 }
 
