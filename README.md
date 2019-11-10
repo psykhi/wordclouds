@@ -34,7 +34,7 @@ A list of bounding boxes where the algorithm can not place words can be provided
 The `Mask` function can be used to create such a mask given a file and a masking color.
 
 ```go
-boxes = wordclouds.Mask(
+boxes := wordclouds.Mask(
 	conf.Mask.File,
 	conf.Width,
 	conf.Height,
@@ -50,8 +50,9 @@ Most wordclouds should take a few seconds to be generated. A spatial hashmap is 
 
 There are two possible placement algorithm choices:
 1. Random: the algorithms randomly tries to place the word anywhere in the image space.
-   - If it can't find a spot after 500000 tries, it gives up and moves on to the next word.
+   - If it can't find a spot after 500000 tries, it gives up and moves on to the next word. It's quite slow.
 2. Spiral: the algorithm starts to place the words on concentric circles starting at the center of the image.
+It is very fast and is the default algorithm    
 
 # Contributing
 

@@ -4,7 +4,7 @@
   "font_file":"./fonts/roboto/Roboto-Regular.ttf",
   "width":2048,
   "height":2048,
-  "random_placement":true,
+  "random_placement":false,
   "colors":[{"R":247,"G":144,"B":30,"A":255},{"R":194,"G":69,"B":39,"A":255},{"R":38,"G":103,"B":118,"A":255},{"R":173,"G":210,"B":224,"A":255}],
   "mask":{
     "file":"mask.png",

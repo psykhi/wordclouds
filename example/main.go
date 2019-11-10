@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
@@ -131,7 +132,8 @@ func main() {
 		wordclouds.Colors(colors),
 		wordclouds.MaskBoxes(boxes),
 		wordclouds.Height(conf.Height),
-		wordclouds.Width(conf.Width))
+		wordclouds.Width(conf.Width),
+		wordclouds.RandomPlacement(conf.RandomPlacement))
 
 	img := w.Draw()
 	outputFile, err := os.Create(*output)
