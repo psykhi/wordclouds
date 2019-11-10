@@ -51,7 +51,7 @@ func TestWordcloud_Draw(t *testing.T) {
 	t.Logf("Mask loading took %v", time.Since(t0))
 	t0 = time.Now()
 	w := NewWordcloud(inputWords,
-		FontFile("testdata/fonts/roboto/Roboto-Regular.ttf"),
+		FontFile("testdata/Roboto-Regular.ttf"),
 		FontMaxSize(300),
 		FontMinSize(30),
 		Colors(colors),
