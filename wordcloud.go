@@ -52,7 +52,7 @@ type Options struct {
 	BackgroundColor color.Color
 	Width           int
 	Height          int
-	mask            []*Box
+	Mask            []*Box
 	Debug           bool
 }
 
@@ -65,7 +65,7 @@ var defaultOptions = Options{
 	BackgroundColor: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	Width:           2048,
 	Height:          2048,
-	mask:            make([]*Box, 0),
+	Mask:            make([]*Box, 0),
 	Debug:           false,
 }
 
@@ -110,7 +110,7 @@ func FontMinSize(min int) Option {
 // See Mask
 func MaskBoxes(mask []*Box) Option {
 	return func(options *Options) {
-		options.mask = mask
+		options.Mask = mask
 	}
 }
 
@@ -161,7 +161,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	dc.SetRGB(0, 0, 0)
 	grid := newSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
 
-	for _, b := range opts.mask {
+	for _, b := range opts.Mask {
 		if opts.Debug {
 			dc.DrawRectangle(b.x(), b.y(), b.w(), b.h())
 			dc.Stroke()
@@ -200,8 +200,8 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 	step := 5
 
 	defColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-	for i := int(math.Floor(b.left)); i < int(b.right); i = i + step {
-		for j := int(b.bottom); j < int(b.top); j = j + step {
+	for i := int(math.Floor(b.Left)); i < int(b.Right); i = i + step {
+		for j := int(b.Bottom); j < int(b.Top); j = j + step {
 			if w.dc.Image().At(i, j) != defColor {
 				res = append(res, &Box{
 					float64(j+step) + 5,
@@ -295,10 +295,10 @@ func (w *Wordcloud) nextRandom(width float64, height float64) (x float64, y floa
 		tries++
 		x, y = float64(rand.Intn(w.dc.Width())), float64(rand.Intn(w.dc.Height()))
 		// Is that position available?
-		box.top = y + height/2
-		box.left = x - width/2
-		box.right = x + width/2
-		box.bottom = y - height/2
+		box.Top = y + height/2
+		box.Left = x - width/2
+		box.Right = x + width/2
+		box.Bottom = y - height/2
 
 		if !box.fits(w.width, w.height) {
 			continue
@@ -453,10 +453,10 @@ func (w *Wordcloud) testRadius(radius float64, points []point, width float64, he
 		x = p.x
 
 		// Is that position available?
-		box.top = y + height/2
-		box.left = x - width/2
-		box.right = x + width/2
-		box.bottom = y - height/2
+		box.Top = y + height/2
+		box.Left = x - width/2
+		box.Right = x + width/2
+		box.Bottom = y - height/2
 
 		if !box.fits(w.width, w.height) {
 			continue

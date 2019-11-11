@@ -3,36 +3,36 @@ package wordclouds
 import "fmt"
 
 type Box struct {
-	top    float64
-	left   float64
-	right  float64
-	bottom float64
+	Top    float64
+	Left   float64
+	Right  float64
+	Bottom float64
 }
 
 func (a *Box) x() float64 {
-	return a.left
+	return a.Left
 }
 
 func (a *Box) y() float64 {
-	return a.bottom
+	return a.Bottom
 }
 
 func (a *Box) w() float64 {
-	return a.right - a.left
+	return a.Right - a.Left
 }
 
 func (a *Box) h() float64 {
-	return a.top - a.bottom
+	return a.Top - a.Bottom
 }
 
 func (a *Box) fits(width float64, height float64) bool {
-	return a.bottom > 0 && a.top < height && a.left > 0 && a.right < width
+	return a.Bottom > 0 && a.Top < height && a.Left > 0 && a.Right < width
 }
 func (a *Box) overlaps(b *Box) bool {
-	return a.left <= b.right && a.right >= b.left && a.top >= b.bottom && a.bottom <= b.top
+	return a.Left <= b.Right && a.Right >= b.Left && a.Top >= b.Bottom && a.Bottom <= b.Top
 }
 func (a *Box) overlapsRaw(top float64, left float64, right float64, bottom float64) bool {
-	return a.left <= right && a.right >= left && a.top >= bottom && a.bottom <= top
+	return a.Left <= right && a.Right >= left && a.Top >= bottom && a.Bottom <= top
 }
 
 func (a *Box) String() string {
