@@ -61,7 +61,7 @@ var defaultOptions = Options{
 	FontMinSize:     10,
 	RandomPlacement: false,
 	FontFile:        "",
-	Colors:          []color.Color{color.RGBA{0, 0, 0, 0}},
+	Colors:          []color.Color{color.RGBA{}},
 	BackgroundColor: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	Width:           2048,
 	Height:          2048,
@@ -75,6 +75,13 @@ type Option func(*Options)
 func FontFile(path string) Option {
 	return func(options *Options) {
 		options.FontFile = path
+	}
+}
+
+// Output file background color
+func BackgroundColor(color color.Color) Option {
+	return func(options *Options) {
+		options.BackgroundColor = color
 	}
 }
 
@@ -149,7 +156,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	})
 
 	dc := gg.NewContext(opts.Width, opts.Height)
-	dc.SetRGB(1, 1, 1)
+	dc.SetColor(opts.BackgroundColor)
 	dc.Clear()
 	dc.SetRGB(0, 0, 0)
 	grid := newSpatialHashMap(float64(opts.Width), float64(opts.Height), opts.Height/10)
