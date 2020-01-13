@@ -2,6 +2,7 @@ package wordclouds
 
 import (
 	"github.com/satori/go.uuid"
+	"fmt"
 )
 
 type uniqueBox struct {
@@ -33,7 +34,11 @@ func (s *spatialHashMap) TestCollision(b *Box, test func(a *Box, b *Box) bool) (
 }
 
 func (s *spatialHashMap) Add(b *Box) {
-	id := uuid.NewV4()
+	id, err := uuid.NewV4()
+	if err != nil {
+		fmt.Printf("Something went wrong: %s", err)
+		return
+	}
 	top, left, right, bottom := s.toGridCoords(b)
 	for i := left; i <= right; i++ {
 		for j := bottom; j <= top; j++ {
