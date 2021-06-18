@@ -1,15 +1,18 @@
 package wordclouds
 
 import (
-	"github.com/fogleman/gg"
-	"golang.org/x/image/font"
 	"image"
 	"image/color"
 	"math"
 	"math/rand"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/fogleman/gg"
+	"golang.org/x/image/font"
 )
 
 type wordCount struct {
@@ -149,7 +152,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	sortedWordList := make([]wordCount, 0, len(wordList))
 	for word, count := range wordList {
-		sortedWordList = append(sortedWordList, wordCount{word: word, count: count})
+		sortedWordList = append(sortedWordList, wordCount{word: strings.Trim(word, " "), count: count})
 	}
 	sort.Slice(sortedWordList, func(i, j int) bool {
 		return sortedWordList[i].count > sortedWordList[j].count
@@ -178,6 +181,8 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		radii = append(radii, radius)
 		radius = radius + 5.0
 	}
+
+	rand.Seed(time.Now().UnixNano())
 
 	return &Wordcloud{
 		wordList:        wordList,
@@ -291,7 +296,7 @@ func (w *Wordcloud) nextRandom(width float64, height float64) (x float64, y floa
 	tries := 0
 	searching := true
 	var box Box
-	for searching && tries < 500000 {
+	for searching && tries < 5000000 {
 		tries++
 		x, y = float64(rand.Intn(w.dc.Width())), float64(rand.Intn(w.dc.Height()))
 		// Is that position available?
