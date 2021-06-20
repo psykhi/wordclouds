@@ -1,6 +1,8 @@
 package wordclouds
 
-import "image/color"
+import (
+	"image/color"
+)
 
 type Options struct {
 	FontMaxSize     int
@@ -12,6 +14,7 @@ type Options struct {
 	Width           int
 	Height          int
 	Mask            []*Box
+	SizeFunction    sizeFunction
 	Debug           bool
 }
 
@@ -25,6 +28,7 @@ var defaultOptions = Options{
 	Width:           2048,
 	Height:          2048,
 	Mask:            make([]*Box, 0),
+	SizeFunction:    sizeLinear,
 	Debug:           false,
 }
 
@@ -89,6 +93,22 @@ func Height(h int) Option {
 func RandomPlacement(do bool) Option {
 	return func(options *Options) {
 		options.RandomPlacement = do
+	}
+}
+
+// Set word font sizing function
+func WordSizeFunction(f string) Option {
+	return func(options *Options) {
+		switch f {
+		case SizeFunctionLinear:
+			options.SizeFunction = sizeLinear
+		case SizeFunctionSqrt:
+			options.SizeFunction = sizeSqrt
+		case SizeFunctionSqrtInverse:
+			options.SizeFunction = sizeSqrtInverse
+		default:
+			panic("No such size function " + f)
+		}
 	}
 }
 

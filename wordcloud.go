@@ -18,6 +18,7 @@ import (
 type wordCount struct {
 	word  string
 	count int
+	size  float64
 }
 
 // Wordcloud object. Create one with NewWordcloud and use Draw() to get the image
@@ -44,11 +45,27 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	sortedWordList := make([]wordCount, 0, len(wordList))
 	for word, count := range wordList {
-		sortedWordList = append(sortedWordList, wordCount{word: strings.Trim(word, " "), count: count})
+		sortedWordList = append(sortedWordList, wordCount{
+			word:  strings.Trim(word, " "),
+			count: count,
+			size:  5,
+		})
+
 	}
 	sort.Slice(sortedWordList, func(i, j int) bool {
 		return sortedWordList[i].count > sortedWordList[j].count
 	})
+
+	// determine word font sizes based on sizeFunction
+	wordCountMin := sortedWordList[len(sortedWordList)-1].count
+	wordCountLength := sortedWordList[0].count - wordCountMin
+	for idx := range sortedWordList {
+		word := &sortedWordList[idx]
+		// apply min(count) and FontMinSize shifting + scaling to count and font size range
+		word.size = (float64(opts.FontMinSize) +
+			opts.SizeFunction(float64(word.count-wordCountMin)/float64(wordCountLength))*
+				float64(opts.FontMaxSize-opts.FontMinSize))
+	}
 
 	dc := gg.NewContext(opts.Width, opts.Height)
 	dc.SetColor(opts.BackgroundColor)
@@ -129,12 +146,7 @@ func (w *Wordcloud) Place(wc wordCount) bool {
 	c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 	w.dc.SetColor(c)
 
-	size := float64(w.opts.FontMaxSize) * (float64(wc.count) / float64(w.sortedWordList[0].count))
-
-	if size < float64(w.opts.FontMinSize) {
-		size = float64(w.opts.FontMinSize)
-	}
-	w.setFont(size)
+	w.setFont(wc.size)
 	width, height := w.dc.MeasureString(wc.word)
 
 	width += 5
