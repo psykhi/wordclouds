@@ -20,23 +20,12 @@ type wordCount struct {
 	count int
 }
 
-type word2D struct {
-	wordCount
-	x           float64
-	y           float64
-	height      float64
-	boundingBox *Box
-}
-
 // Wordcloud object. Create one with NewWordcloud and use Draw() to get the image
 type Wordcloud struct {
 	wordList        map[string]int
 	sortedWordList  []wordCount
 	grid            *spatialHashMap
 	dc              *gg.Context
-	overlapCount    int
-	words2D         []*word2D
-	availableColors []color.Color
 	randomPlacement bool
 	width           float64
 	height          float64
@@ -92,7 +81,6 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		sortedWordList:  sortedWordList,
 		grid:            grid,
 		dc:              dc,
-		words2D:         make([]*word2D, 0),
 		randomPlacement: opts.RandomPlacement,
 		width:           float64(opts.Width),
 		height:          float64(opts.Height),
