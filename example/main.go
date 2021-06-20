@@ -30,19 +30,22 @@ var DefaultColors = []color.RGBA{
 }
 
 type Conf struct {
-	FontMaxSize     int          `yaml:"font_max_size"`
-	FontMinSize     int          `yaml:"font_min_size"`
-	RandomPlacement bool         `yaml:"random_placement"`
-	FontFile        string       `yaml:"font_file"`
-	Colors          []color.RGBA `yaml:"colors"`
-	Width           int          `yaml:"width"`
-	Height          int          `yaml:"height"`
-	Mask            MaskConf     `yaml:"mask"`
+	FontMaxSize     int    `yaml:"font_max_size"`
+	FontMinSize     int    `yaml:"font_min_size"`
+	RandomPlacement bool   `yaml:"random_placement"`
+	FontFile        string `yaml:"font_file"`
+	Colors          []color.RGBA
+	BackgroundColor color.RGBA `yaml:"background_color"`
+	Width           int
+	Height          int
+	Mask            MaskConf
+	SizeFunction    *string `yaml:"size_function"`
+	Debug           bool
 }
 
 type MaskConf struct {
-	File  string     `yaml:"file"`
-	Color color.RGBA `yaml:"color"`
+	File  string
+	Color color.RGBA
 }
 
 var DefaultConf = Conf{
@@ -51,6 +54,7 @@ var DefaultConf = Conf{
 	RandomPlacement: false,
 	FontFile:        "./fonts/roboto/Roboto-Regular.ttf",
 	Colors:          DefaultColors,
+	BackgroundColor: color.RGBA{255, 255, 255, 255},
 	Width:           4096,
 	Height:          4096,
 	Mask: MaskConf{"", color.RGBA{
@@ -59,6 +63,7 @@ var DefaultConf = Conf{
 		B: 0,
 		A: 0,
 	}},
+	Debug: false,
 }
 
 func main() {
@@ -118,20 +123,29 @@ func main() {
 	}
 
 	start := time.Now()
-	w := wordclouds.NewWordcloud(inputWords,
-		wordclouds.FontFile(conf.FontFile),
+	oarr := []wordclouds.Option{wordclouds.FontFile(conf.FontFile),
 		wordclouds.FontMaxSize(conf.FontMaxSize),
 		wordclouds.FontMinSize(conf.FontMinSize),
 		wordclouds.Colors(colors),
 		wordclouds.MaskBoxes(boxes),
 		wordclouds.Height(conf.Height),
 		wordclouds.Width(conf.Width),
-		wordclouds.RandomPlacement(conf.RandomPlacement))
+		wordclouds.RandomPlacement(conf.RandomPlacement),
+		wordclouds.BackgroundColor(conf.BackgroundColor)}
+	if conf.SizeFunction != nil {
+		oarr = append(oarr, wordclouds.WordSizeFunction(*conf.SizeFunction))
+	}
+	if conf.Debug {
+		oarr = append(oarr, wordclouds.Debug())
+	}
+	w := wordclouds.NewWordcloud(inputWords,
+		oarr...,
+	)
 
 	img := w.Draw()
 	outputFile, err := os.Create(*output)
 	if err != nil {
-		// Handle error
+		panic(err)
 	}
 
 	// Encode takes a writer interface and an image interface
