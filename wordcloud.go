@@ -2,7 +2,6 @@ package wordclouds
 
 import (
 	"image"
-	"image/color"
 	"math"
 	"math/rand"
 	"runtime"
@@ -112,7 +111,7 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 	res := make([]*Box, 0)
 	step := 5
 
-	defColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	defColor := w.opts.BackgroundColor
 	for i := int(math.Floor(b.Left)); i < int(b.Right); i = i + step {
 		for j := int(b.Bottom); j < int(b.Top); j = j + step {
 			if w.dc.Image().At(i, j) != defColor {

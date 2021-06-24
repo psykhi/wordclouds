@@ -52,6 +52,7 @@ func TestWordcloud_Draw(t *testing.T) {
 		FontMaxSize(300),
 		FontMinSize(30),
 		Colors(colors),
+		BackgroundColor(color.RGBA{R: 250, G: 250, B: 250, A: 255}),
 		MaskBoxes(boxes),
 		Height(2048),
 		Width(2048))
