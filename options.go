@@ -5,17 +5,19 @@ import (
 )
 
 type Options struct {
-	FontMaxSize     int
-	FontMinSize     int
-	RandomPlacement bool
-	FontFile        string
-	Colors          []color.Color
-	BackgroundColor color.Color
-	Width           int
-	Height          int
-	Mask            []*Box
-	SizeFunction    sizeFunction
-	Debug           bool
+	FontMaxSize       int
+	FontMinSize       int
+	RandomPlacement   bool
+	FontFile          string
+	Colors            []color.Color
+	BackgroundColor   color.Color
+	Width             int
+	Height            int
+	Mask              []*Box
+	SizeFunction      sizeFunction
+	CopyrightString   string
+	CopyrightFontSize int
+	Debug             bool
 }
 
 var defaultOptions = Options{
@@ -109,6 +111,20 @@ func WordSizeFunction(f string) Option {
 		default:
 			panic("No such size function " + f)
 		}
+	}
+}
+
+// Show a CopyrightString on the bottom right
+func CopyrightString(s string) Option {
+	return func(options *Options) {
+		options.CopyrightString = s
+	}
+}
+
+// Show a CopyrightString on the bottom right
+func CopyrightFontSize(size int) Option {
+	return func(options *Options) {
+		options.CopyrightFontSize = size
 	}
 }
 

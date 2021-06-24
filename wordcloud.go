@@ -2,6 +2,7 @@ package wordclouds
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"math/rand"
 	"runtime"
@@ -92,7 +93,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	rand.Seed(time.Now().UnixNano())
 
-	return &Wordcloud{
+	wc := &Wordcloud{
 		wordList:        wordList,
 		sortedWordList:  sortedWordList,
 		grid:            grid,
@@ -105,6 +106,10 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		fonts:           make(map[float64]font.Face),
 		radii:           radii,
 	}
+
+	wc.PlaceCopyright()
+
+	return wc
 }
 
 func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
@@ -139,6 +144,22 @@ func (w *Wordcloud) setFont(size float64) {
 	}
 
 	w.dc.SetFontFace(w.fonts[size])
+}
+
+func (w *Wordcloud) PlaceCopyright() {
+	if w.opts.CopyrightString != "" {
+		w.dc.SetColor(color.Black)
+		w.setFont(float64(w.opts.CopyrightFontSize))
+		width, height := w.dc.MeasureString(w.opts.CopyrightString)
+		w.dc.DrawStringAnchored(w.opts.CopyrightString, w.width-width-10, w.height-10, 0, 0)
+		box := &Box{
+			w.height - height,
+			w.width,
+			w.width - width,
+			w.height,
+		}
+		w.grid.Add(box)
+	}
 }
 
 func (w *Wordcloud) Place(wc wordCount) bool {

@@ -55,7 +55,10 @@ func TestWordcloud_Draw(t *testing.T) {
 		BackgroundColor(color.RGBA{R: 250, G: 250, B: 250, A: 255}),
 		MaskBoxes(boxes),
 		Height(2048),
-		Width(2048))
+		Width(2048),
+		CopyrightString("(c) Copyright"),
+		CopyrightFontSize(30),
+	)
 
 	t.Logf("Wordcloud init took %v", time.Since(t0))
 	t0 = time.Now()
