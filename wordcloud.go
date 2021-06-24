@@ -93,7 +93,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	rand.Seed(time.Now().UnixNano())
 
-	wc := &Wordcloud{
+	return &Wordcloud{
 		wordList:        wordList,
 		sortedWordList:  sortedWordList,
 		grid:            grid,
@@ -106,10 +106,6 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		fonts:           make(map[float64]font.Face),
 		radii:           radii,
 	}
-
-	wc.PlaceCopyright()
-
-	return wc
 }
 
 func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
@@ -148,17 +144,24 @@ func (w *Wordcloud) setFont(size float64) {
 
 func (w *Wordcloud) PlaceCopyright() {
 	if w.opts.CopyrightString != "" {
-		w.dc.SetColor(color.Black)
+		var margin = 10.0
+
 		w.setFont(float64(w.opts.CopyrightFontSize))
 		width, height := w.dc.MeasureString(w.opts.CopyrightString)
-		w.dc.DrawStringAnchored(w.opts.CopyrightString, w.width-width-10, w.height-10, 0, 0)
+
 		box := &Box{
-			w.height - height,
-			w.width,
-			w.width - width,
-			w.height,
+			w.height - height - 1.3*margin,
+			w.width - width - 1.3*margin,
+			w.width - 0.7*margin,
+			w.height - 0.7*margin,
 		}
-		w.grid.Add(box)
+
+		w.dc.SetColor(w.opts.BackgroundColor)
+		w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
+		w.dc.Fill()
+
+		w.dc.SetColor(color.Black)
+		w.dc.DrawStringAnchored(w.opts.CopyrightString, w.width-margin, w.height-height-margin, 1, 0.76)
 	}
 }
 
@@ -206,12 +209,14 @@ func (w *Wordcloud) Draw() image.Image {
 		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
+				w.PlaceCopyright()
 				return w.dc.Image()
 			}
 			continue
 		}
 		consecutiveMisses = 0
 	}
+	w.PlaceCopyright()
 	return w.dc.Image()
 }
 
