@@ -377,19 +377,18 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 	// Post positions to test to worker channel
 	go func() {
 		for _, r := range w.radii {
+			c := w.circles[r]
 			select {
 			case <-stopSendingCh:
 				// Stop sending data immediately if a position has already been found
 				close(workCh)
 				return
-			default:
-			}
-			c := w.circles[r]
-			workCh <- workerData{
+			case workCh <- workerData{
 				radius:    r,
 				positions: c.positions(),
 				width:     width,
 				height:    height,
+				}:
 			}
 		}
 		// Close channel after all positions have been sent
@@ -405,7 +404,12 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 		}
 		// Purge res channel in case some workers are still sending data
 		go func() {
-			for range aggCh {
+			for {
+				select {
+				case <-aggCh:
+				default:
+					return
+				}
 			}
 		}()
 
