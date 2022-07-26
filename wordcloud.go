@@ -2,7 +2,6 @@ package wordclouds
 
 import (
 	"image"
-	"image/color"
 	"math"
 	"math/rand"
 	"runtime"
@@ -62,9 +61,9 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 	for idx := range sortedWordList {
 		word := &sortedWordList[idx]
 		// apply min(count) and FontMinSize shifting + scaling to count and font size range
-		word.size = (float64(opts.FontMinSize) +
+		word.size = float64(opts.FontMinSize) +
 			opts.SizeFunction(float64(word.count-wordCountMin)/float64(wordCountLength))*
-				float64(opts.FontMaxSize-opts.FontMinSize))
+				float64(opts.FontMaxSize-opts.FontMinSize)
 	}
 
 	dc := gg.NewContext(opts.Width, opts.Height)
@@ -142,29 +141,6 @@ func (w *Wordcloud) setFont(size float64) {
 	w.dc.SetFontFace(w.fonts[size])
 }
 
-func (w *Wordcloud) PlaceCopyright() {
-	if w.opts.CopyrightString != "" {
-		var margin = 10.0
-
-		w.setFont(float64(w.opts.CopyrightFontSize))
-		width, height := w.dc.MeasureString(w.opts.CopyrightString)
-
-		box := &Box{
-			w.height - height - 1.3*margin,
-			w.width - width - 1.3*margin,
-			w.width - 0.7*margin,
-			w.height - 0.7*margin,
-		}
-
-		w.dc.SetColor(w.opts.BackgroundColor)
-		w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
-		w.dc.Fill()
-
-		w.dc.SetColor(color.Black)
-		w.dc.DrawStringAnchored(w.opts.CopyrightString, w.width-margin, w.height-height-margin, 1, 0.76)
-	}
-}
-
 func (w *Wordcloud) Place(wc wordCount) bool {
 	c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 	w.dc.SetColor(c)
@@ -209,14 +185,12 @@ func (w *Wordcloud) Draw() image.Image {
 		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
-				w.PlaceCopyright()
 				return w.dc.Image()
 			}
 			continue
 		}
 		consecutiveMisses = 0
 	}
-	w.PlaceCopyright()
 	return w.dc.Image()
 }
 
@@ -321,7 +295,7 @@ func (w *Wordcloud) nextPos(width float64, height float64) (x float64, y float64
 				positions: c.positions(),
 				width:     width,
 				height:    height,
-				}:
+			}:
 			}
 		}
 		// Close channel after all positions have been sent

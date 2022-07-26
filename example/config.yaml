@@ -17,7 +17,5 @@
   'size_function': 'linear', # one of linear, sqrt, sqrtinverse
   # 'size_function': 'sqrt', # one of linear, sqrt, sqrtinverse
   # 'size_function': 'sqrtinverse', # one of linear, sqrt, sqrtinverse
-  'copyright_string': '(c) Your copyright', # optional
-  'copyright_font_size': 36, # used for copyright_string
   'debug': false
 }

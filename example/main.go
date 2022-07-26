@@ -30,19 +30,17 @@ var DefaultColors = []color.RGBA{
 }
 
 type Conf struct {
-	FontMaxSize       int    `yaml:"font_max_size"`
-	FontMinSize       int    `yaml:"font_min_size"`
-	RandomPlacement   bool   `yaml:"random_placement"`
-	FontFile          string `yaml:"font_file"`
-	Colors            []color.RGBA
-	BackgroundColor   color.RGBA `yaml:"background_color"`
-	Width             int
-	Height            int
-	Mask              MaskConf
-	SizeFunction      *string `yaml:"size_function"`
-	CopyrightString   *string `yaml:"copyright_string"`
-	CopyrightFontSize int     `yaml:"copyright_font_size"`
-	Debug             bool
+	FontMaxSize     int    `yaml:"font_max_size"`
+	FontMinSize     int    `yaml:"font_min_size"`
+	RandomPlacement bool   `yaml:"random_placement"`
+	FontFile        string `yaml:"font_file"`
+	Colors          []color.RGBA
+	BackgroundColor color.RGBA `yaml:"background_color"`
+	Width           int
+	Height          int
+	Mask            MaskConf
+	SizeFunction    *string `yaml:"size_function"`
+	Debug           bool
 }
 
 type MaskConf struct {
@@ -104,10 +102,9 @@ func main() {
 	}
 	os.Chdir(filepath.Dir(*config))
 
-	confYaml, err := yaml.Marshal(conf)
-	fmt.Printf("Configuration: %s\n", confYaml)
-	if err != nil {
-		fmt.Println(err)
+	if conf.Debug {
+		confYaml, _ := yaml.Marshal(conf)
+		fmt.Printf("Configuration: %s\n", confYaml)
 	}
 
 	var boxes []*wordclouds.Box
@@ -136,14 +133,6 @@ func main() {
 		wordclouds.BackgroundColor(conf.BackgroundColor)}
 	if conf.SizeFunction != nil {
 		oarr = append(oarr, wordclouds.WordSizeFunction(*conf.SizeFunction))
-	}
-	if conf.CopyrightString != nil {
-		oarr = append(oarr, wordclouds.CopyrightString(*conf.CopyrightString))
-		if conf.CopyrightFontSize == 0 {
-			oarr = append(oarr, wordclouds.CopyrightFontSize(conf.FontMinSize))
-		} else {
-			oarr = append(oarr, wordclouds.CopyrightFontSize(int(conf.CopyrightFontSize)))
-		}
 	}
 	if conf.Debug {
 		oarr = append(oarr, wordclouds.Debug())
