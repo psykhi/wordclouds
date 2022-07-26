@@ -1,28 +1,24 @@
 package wordclouds
 
 import (
-	"github.com/fogleman/gg"
-	"golang.org/x/image/font"
 	"image"
 	"image/color"
 	"math"
 	"math/rand"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/fogleman/gg"
+	"golang.org/x/image/font"
 )
 
 type wordCount struct {
 	word  string
 	count int
-}
-
-type word2D struct {
-	wordCount
-	x           float64
-	y           float64
-	height      float64
-	boundingBox *Box
+	size  float64
 }
 
 // Wordcloud object. Create one with NewWordcloud and use Draw() to get the image
@@ -31,9 +27,6 @@ type Wordcloud struct {
 	sortedWordList  []wordCount
 	grid            *spatialHashMap
 	dc              *gg.Context
-	overlapCount    int
-	words2D         []*word2D
-	availableColors []color.Color
 	randomPlacement bool
 	width           float64
 	height          float64
@@ -41,103 +34,6 @@ type Wordcloud struct {
 	circles         map[float64]*circle
 	fonts           map[float64]font.Face
 	radii           []float64
-}
-
-type Options struct {
-	FontMaxSize     int
-	FontMinSize     int
-	RandomPlacement bool
-	FontFile        string
-	Colors          []color.Color
-	BackgroundColor color.Color
-	Width           int
-	Height          int
-	Mask            []*Box
-	Debug           bool
-}
-
-var defaultOptions = Options{
-	FontMaxSize:     500,
-	FontMinSize:     10,
-	RandomPlacement: false,
-	FontFile:        "",
-	Colors:          []color.Color{color.RGBA{}},
-	BackgroundColor: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
-	Width:           2048,
-	Height:          2048,
-	Mask:            make([]*Box, 0),
-	Debug:           false,
-}
-
-type Option func(*Options)
-
-// Path to font file
-func FontFile(path string) Option {
-	return func(options *Options) {
-		options.FontFile = path
-	}
-}
-
-// Output file background color
-func BackgroundColor(color color.Color) Option {
-	return func(options *Options) {
-		options.BackgroundColor = color
-	}
-}
-
-// Colors to use for the words
-func Colors(colors []color.Color) Option {
-	return func(options *Options) {
-		options.Colors = colors
-	}
-}
-
-// Max font size
-func FontMaxSize(max int) Option {
-	return func(options *Options) {
-		options.FontMaxSize = max
-	}
-}
-
-// Min font size
-func FontMinSize(min int) Option {
-	return func(options *Options) {
-		options.FontMinSize = min
-	}
-}
-
-// A list of bounding boxes where words can not be placed.
-// See Mask
-func MaskBoxes(mask []*Box) Option {
-	return func(options *Options) {
-		options.Mask = mask
-	}
-}
-
-func Width(w int) Option {
-	return func(options *Options) {
-		options.Width = w
-	}
-}
-
-func Height(h int) Option {
-	return func(options *Options) {
-		options.Height = h
-	}
-}
-
-// Place words randomly
-func RandomPlacement(do bool) Option {
-	return func(options *Options) {
-		options.RandomPlacement = do
-	}
-}
-
-// Draw bounding boxes around words
-func Debug() Option {
-	return func(options *Options) {
-		options.Debug = true
-	}
 }
 
 // Initialize a wordcloud based on a map of word frequency.
@@ -149,11 +45,27 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	sortedWordList := make([]wordCount, 0, len(wordList))
 	for word, count := range wordList {
-		sortedWordList = append(sortedWordList, wordCount{word: word, count: count})
+		sortedWordList = append(sortedWordList, wordCount{
+			word:  strings.Trim(word, " "),
+			count: count,
+			size:  5,
+		})
+
 	}
 	sort.Slice(sortedWordList, func(i, j int) bool {
 		return sortedWordList[i].count > sortedWordList[j].count
 	})
+
+	// determine word font sizes based on sizeFunction
+	wordCountMin := sortedWordList[len(sortedWordList)-1].count
+	wordCountLength := sortedWordList[0].count - wordCountMin
+	for idx := range sortedWordList {
+		word := &sortedWordList[idx]
+		// apply min(count) and FontMinSize shifting + scaling to count and font size range
+		word.size = (float64(opts.FontMinSize) +
+			opts.SizeFunction(float64(word.count-wordCountMin)/float64(wordCountLength))*
+				float64(opts.FontMaxSize-opts.FontMinSize))
+	}
 
 	dc := gg.NewContext(opts.Width, opts.Height)
 	dc.SetColor(opts.BackgroundColor)
@@ -179,12 +91,13 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		radius = radius + 5.0
 	}
 
+	rand.Seed(time.Now().UnixNano())
+
 	return &Wordcloud{
 		wordList:        wordList,
 		sortedWordList:  sortedWordList,
 		grid:            grid,
 		dc:              dc,
-		words2D:         make([]*word2D, 0),
 		randomPlacement: opts.RandomPlacement,
 		width:           float64(opts.Width),
 		height:          float64(opts.Height),
@@ -199,7 +112,7 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 	res := make([]*Box, 0)
 	step := 5
 
-	defColor := color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	defColor := w.opts.BackgroundColor
 	for i := int(math.Floor(b.Left)); i < int(b.Right); i = i + step {
 		for j := int(b.Bottom); j < int(b.Top); j = j + step {
 			if w.dc.Image().At(i, j) != defColor {
@@ -229,16 +142,34 @@ func (w *Wordcloud) setFont(size float64) {
 	w.dc.SetFontFace(w.fonts[size])
 }
 
+func (w *Wordcloud) PlaceCopyright() {
+	if w.opts.CopyrightString != "" {
+		var margin = 10.0
+
+		w.setFont(float64(w.opts.CopyrightFontSize))
+		width, height := w.dc.MeasureString(w.opts.CopyrightString)
+
+		box := &Box{
+			w.height - height - 1.3*margin,
+			w.width - width - 1.3*margin,
+			w.width - 0.7*margin,
+			w.height - 0.7*margin,
+		}
+
+		w.dc.SetColor(w.opts.BackgroundColor)
+		w.dc.DrawRectangle(box.x(), box.y(), box.w(), box.h())
+		w.dc.Fill()
+
+		w.dc.SetColor(color.Black)
+		w.dc.DrawStringAnchored(w.opts.CopyrightString, w.width-margin, w.height-height-margin, 1, 0.76)
+	}
+}
+
 func (w *Wordcloud) Place(wc wordCount) bool {
 	c := w.opts.Colors[rand.Intn(len(w.opts.Colors))]
 	w.dc.SetColor(c)
 
-	size := float64(w.opts.FontMaxSize) * (float64(wc.count) / float64(w.sortedWordList[0].count))
-
-	if size < float64(w.opts.FontMinSize) {
-		size = float64(w.opts.FontMinSize)
-	}
-	w.setFont(size)
+	w.setFont(wc.size)
 	width, height := w.dc.MeasureString(wc.word)
 
 	width += 5
@@ -278,12 +209,14 @@ func (w *Wordcloud) Draw() image.Image {
 		if !success {
 			consecutiveMisses++
 			if consecutiveMisses > 10 {
+				w.PlaceCopyright()
 				return w.dc.Image()
 			}
 			continue
 		}
 		consecutiveMisses = 0
 	}
+	w.PlaceCopyright()
 	return w.dc.Image()
 }
 
@@ -291,7 +224,7 @@ func (w *Wordcloud) nextRandom(width float64, height float64) (x float64, y floa
 	tries := 0
 	searching := true
 	var box Box
-	for searching && tries < 500000 {
+	for searching && tries < 5000000 {
 		tries++
 		x, y = float64(rand.Intn(w.dc.Width())), float64(rand.Intn(w.dc.Height()))
 		// Is that position available?

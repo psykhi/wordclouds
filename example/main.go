@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/psykhi/wordclouds"
 	"image/color"
 	"image/png"
 	"log"
@@ -14,10 +11,13 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"time"
+
+	"github.com/psykhi/wordclouds"
+	"gopkg.in/yaml.v2"
 )
 
-var path = flag.String("input", "input.json", "path to flat JSON like {\"word\":42,...}")
-var config = flag.String("config", "config.json", "path to config file")
+var path = flag.String("input", "input.yaml", "path to flat YAML like {\"word\":42,...}")
+var config = flag.String("config", "config.yaml", "path to config file")
 var output = flag.String("output", "output.png", "path to output image")
 var cpuprofile = flag.String("cpuprofile", "profile", "write cpu profile to file")
 
@@ -30,19 +30,24 @@ var DefaultColors = []color.RGBA{
 }
 
 type Conf struct {
-	FontMaxSize     int          `json:"font_max_size"`
-	FontMinSize     int          `json:"font_min_size"`
-	RandomPlacement bool         `json:"random_placement"`
-	FontFile        string       `json:"font_file"`
-	Colors          []color.RGBA `json:"colors"`
-	Width           int          `json:"width"`
-	Height          int          `json:"height"`
-	Mask            MaskConf     `json:"mask"`
+	FontMaxSize       int    `yaml:"font_max_size"`
+	FontMinSize       int    `yaml:"font_min_size"`
+	RandomPlacement   bool   `yaml:"random_placement"`
+	FontFile          string `yaml:"font_file"`
+	Colors            []color.RGBA
+	BackgroundColor   color.RGBA `yaml:"background_color"`
+	Width             int
+	Height            int
+	Mask              MaskConf
+	SizeFunction      *string `yaml:"size_function"`
+	CopyrightString   *string `yaml:"copyright_string"`
+	CopyrightFontSize int     `yaml:"copyright_font_size"`
+	Debug             bool
 }
 
 type MaskConf struct {
-	File  string     `json:"file"`
-	Color color.RGBA `json:"color"`
+	File  string
+	Color color.RGBA
 }
 
 var DefaultConf = Conf{
@@ -51,6 +56,7 @@ var DefaultConf = Conf{
 	RandomPlacement: false,
 	FontFile:        "./fonts/roboto/Roboto-Regular.ttf",
 	Colors:          DefaultColors,
+	BackgroundColor: color.RGBA{255, 255, 255, 255},
 	Width:           4096,
 	Height:          4096,
 	Mask: MaskConf{"", color.RGBA{
@@ -59,6 +65,7 @@ var DefaultConf = Conf{
 		B: 0,
 		A: 0,
 	}},
+	Debug: false,
 }
 
 func main() {
@@ -74,27 +81,21 @@ func main() {
 	}
 
 	// Load words
-	f, err := os.Open(*path)
+	content, err := os.ReadFile(*path)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	reader := bufio.NewReader(f)
-	dec := json.NewDecoder(reader)
 	inputWords := make(map[string]int, 0)
-	err = dec.Decode(&inputWords)
+	err = yaml.Unmarshal(content, &inputWords)
 	if err != nil {
 		panic(err)
 	}
 
 	// Load config
 	conf := DefaultConf
-	f, err = os.Open(*config)
+	content, err = os.ReadFile(*config)
 	if err == nil {
-		defer f.Close()
-		reader = bufio.NewReader(f)
-		dec = json.NewDecoder(reader)
-		err = dec.Decode(&conf)
+		err = yaml.Unmarshal(content, &conf)
 		if err != nil {
 			fmt.Printf("Failed to decode config, using defaults instead: %s\n", err)
 		}
@@ -103,9 +104,8 @@ func main() {
 	}
 	os.Chdir(filepath.Dir(*config))
 
-	confJson, _ := json.Marshal(conf)
-	fmt.Printf("Configuration: %s\n", confJson)
-	err = json.Unmarshal(confJson, &conf)
+	confYaml, err := yaml.Marshal(conf)
+	fmt.Printf("Configuration: %s\n", confYaml)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -125,20 +125,37 @@ func main() {
 	}
 
 	start := time.Now()
-	w := wordclouds.NewWordcloud(inputWords,
-		wordclouds.FontFile(conf.FontFile),
+	oarr := []wordclouds.Option{wordclouds.FontFile(conf.FontFile),
 		wordclouds.FontMaxSize(conf.FontMaxSize),
 		wordclouds.FontMinSize(conf.FontMinSize),
 		wordclouds.Colors(colors),
 		wordclouds.MaskBoxes(boxes),
 		wordclouds.Height(conf.Height),
 		wordclouds.Width(conf.Width),
-		wordclouds.RandomPlacement(conf.RandomPlacement))
+		wordclouds.RandomPlacement(conf.RandomPlacement),
+		wordclouds.BackgroundColor(conf.BackgroundColor)}
+	if conf.SizeFunction != nil {
+		oarr = append(oarr, wordclouds.WordSizeFunction(*conf.SizeFunction))
+	}
+	if conf.CopyrightString != nil {
+		oarr = append(oarr, wordclouds.CopyrightString(*conf.CopyrightString))
+		if conf.CopyrightFontSize == 0 {
+			oarr = append(oarr, wordclouds.CopyrightFontSize(conf.FontMinSize))
+		} else {
+			oarr = append(oarr, wordclouds.CopyrightFontSize(int(conf.CopyrightFontSize)))
+		}
+	}
+	if conf.Debug {
+		oarr = append(oarr, wordclouds.Debug())
+	}
+	w := wordclouds.NewWordcloud(inputWords,
+		oarr...,
+	)
 
 	img := w.Draw()
 	outputFile, err := os.Create(*output)
 	if err != nil {
-		// Handle error
+		panic(err)
 	}
 
 	// Encode takes a writer interface and an image interface

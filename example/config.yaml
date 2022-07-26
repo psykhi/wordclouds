@@ -1,0 +1,23 @@
+{
+  'font_max_size': 300,
+  'font_min_size': 30,
+  'font_file': './fonts/SourceSans3-Regular.ttf',
+  'width': 2048,
+  'height': 2048,
+  'random_placement': false,
+  'colors':
+    [
+      { 'r': 247, 'g': 144, 'b': 30, 'a': 255 },
+      { 'r': 194, 'g': 69, 'b': 39, 'a': 255 },
+      { 'r': 38, 'g': 103, 'b': 118, 'a': 255 },
+      { 'r': 173, 'g': 210, 'b': 224, 'a': 255 },
+    ],
+  'mask': { 'file': 'mask.png', 'maskColor': { 'R': 0, 'g': 0, 'b': 0, 'a': 0 } },
+  # 'background_color': { 'r': 250, 'g': 250, 'b': 250, 'a': 255 }, # optional
+  'size_function': 'linear', # one of linear, sqrt, sqrtinverse
+  # 'size_function': 'sqrt', # one of linear, sqrt, sqrtinverse
+  # 'size_function': 'sqrtinverse', # one of linear, sqrt, sqrtinverse
+  'copyright_string': '(c) Your copyright', # optional
+  'copyright_font_size': 36, # used for copyright_string
+  'debug': false
+}

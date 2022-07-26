@@ -1,14 +1,14 @@
 package wordclouds
 
 import (
-	"bufio"
-	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"image/color"
 	"image/png"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 func TestWordcloud_Draw(t *testing.T) {
@@ -24,15 +24,12 @@ func TestWordcloud_Draw(t *testing.T) {
 		colors = append(colors, c)
 	}
 	// Load words
-	f, err := os.Open("testdata/input.json")
+	content, err := os.ReadFile("testdata/input.yaml")
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	reader := bufio.NewReader(f)
-	dec := json.NewDecoder(reader)
 	inputWords := make(map[string]int, 0)
-	err = dec.Decode(&inputWords)
+	err = yaml.Unmarshal(content, &inputWords)
 	assert.NoError(t, err)
 
 	t0 := time.Now()
@@ -55,9 +52,13 @@ func TestWordcloud_Draw(t *testing.T) {
 		FontMaxSize(300),
 		FontMinSize(30),
 		Colors(colors),
+		BackgroundColor(color.RGBA{R: 250, G: 250, B: 250, A: 255}),
 		MaskBoxes(boxes),
 		Height(2048),
-		Width(2048))
+		Width(2048),
+		CopyrightString("(c) Copyright"),
+		CopyrightFontSize(30),
+	)
 
 	t.Logf("Wordcloud init took %v", time.Since(t0))
 	t0 = time.Now()
