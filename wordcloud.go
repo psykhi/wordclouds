@@ -57,7 +57,8 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	// determine word font sizes based on sizeFunction
 	wordCountMin := sortedWordList[len(sortedWordList)-1].count
-	wordCountLength := sortedWordList[0].count - wordCountMin
+	wordCountLength := int(math.Max(float64(sortedWordList[0].count-wordCountMin), 1))
+
 	for idx := range sortedWordList {
 		word := &sortedWordList[idx]
 		// apply min(count) and FontMinSize shifting + scaling to count and font size range
