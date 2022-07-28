@@ -55,16 +55,16 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		return sortedWordList[i].count > sortedWordList[j].count
 	})
 
-	// determine word font sizes based on sizeFunction
-	wordCountMin := sortedWordList[len(sortedWordList)-1].count
-	wordCountLength := int(math.Max(float64(sortedWordList[0].count-wordCountMin), 1))
+	wordCountMax := float64(sortedWordList[0].count)
 
 	for idx := range sortedWordList {
 		word := &sortedWordList[idx]
-		// apply min(count) and FontMinSize shifting + scaling to count and font size range
-		word.size = float64(opts.FontMinSize) +
-			opts.SizeFunction(float64(word.count-wordCountMin)/float64(wordCountLength))*
-				float64(opts.FontMaxSize-opts.FontMinSize)
+		word.size =
+			opts.SizeFunction(float64(word.count)/wordCountMax) *
+				float64(opts.FontMaxSize)
+		if word.size < float64(opts.FontMinSize) {
+			word.size = float64(opts.FontMinSize)
+		}
 	}
 
 	dc := gg.NewContext(opts.Width, opts.Height)
