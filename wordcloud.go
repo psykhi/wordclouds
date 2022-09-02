@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 )
 
@@ -132,7 +133,7 @@ func (w *Wordcloud) setFont(size float64) {
 	_, ok := w.fonts[size]
 
 	if !ok {
-		f, err := gg.LoadFontFace(w.opts.FontFile, size)
+		f, err := loadFontFace(w.opts.FontFile, size)
 		if err != nil {
 			panic(err)
 		}
@@ -140,6 +141,20 @@ func (w *Wordcloud) setFont(size float64) {
 	}
 
 	w.dc.SetFontFace(w.fonts[size])
+}
+
+// loadFont is an expanded implementation of gg.LoadFontFace
+// which enables loading font file as []byte.
+// this is aiming combination of embeded feature.
+func loadFontFace(fontBytes []byte, points float64) (font.Face, error) {
+	f, err := truetype.Parse(fontBytes)
+	if err != nil {
+		return nil, err
+	}
+	face := truetype.NewFace(f, &truetype.Options{
+		Size: points,
+	})
+	return face, nil
 }
 
 func (w *Wordcloud) Place(wc wordCount) bool {

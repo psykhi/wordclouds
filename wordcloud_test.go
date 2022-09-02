@@ -1,6 +1,7 @@
 package wordclouds
 
 import (
+	_ "embed"
 	"image/color"
 	"image/png"
 	"os"
@@ -10,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
+
+//go:embed testdata/Roboto-Regular.ttf
+var fontBytes []byte
 
 func TestWordcloud_Draw(t *testing.T) {
 	colorsRGBA := []color.RGBA{
@@ -48,7 +52,7 @@ func TestWordcloud_Draw(t *testing.T) {
 	t.Logf("Mask loading took %v", time.Since(t0))
 	t0 = time.Now()
 	w := NewWordcloud(inputWords,
-		FontFile("testdata/Roboto-Regular.ttf"),
+		FontFile(fontBytes),
 		FontMaxSize(300),
 		FontMinSize(30),
 		Colors(colors),

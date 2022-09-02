@@ -2,13 +2,16 @@ package wordclouds
 
 import (
 	"image/color"
+	"io"
+	"os"
+	"path/filepath"
 )
 
 type Options struct {
 	FontMaxSize     int
 	FontMinSize     int
 	RandomPlacement bool
-	FontFile        string
+	FontFile        []byte
 	Colors          []color.Color
 	BackgroundColor color.Color
 	Width           int
@@ -22,7 +25,7 @@ var defaultOptions = Options{
 	FontMaxSize:     500,
 	FontMinSize:     10,
 	RandomPlacement: false,
-	FontFile:        "",
+	FontFile:        nil,
 	Colors:          []color.Color{color.RGBA{}},
 	BackgroundColor: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	Width:           2048,
@@ -35,9 +38,27 @@ var defaultOptions = Options{
 type Option func(*Options)
 
 // Path to font file
-func FontFile(path string) Option {
+func FontFile[T ~string | ~[]byte](font T) Option {
+	var b []byte
+	// any(font) is work around to aboid compile error
+	// with the current generics specification.
+	// this might be cleared in the future.
+	switch v := any(font).(type) {
+	case string:
+		f, err := os.Open(filepath.Clean(v))
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		b, err = io.ReadAll(f)
+		if err != nil {
+			panic(err)
+		}
+	case []byte:
+		b = v
+	}
 	return func(options *Options) {
-		options.FontFile = path
+		options.FontFile = b
 	}
 }
 

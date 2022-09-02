@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"image/color"
@@ -16,6 +17,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//go:embed fonts/roboto/Roboto-Regular.ttf
+var fontBytes []byte
+
 var path = flag.String("input", "input.yaml", "path to flat YAML like {\"word\":42,...}")
 var config = flag.String("config", "config.yaml", "path to config file")
 var output = flag.String("output", "output.png", "path to output image")
@@ -30,10 +34,10 @@ var DefaultColors = []color.RGBA{
 }
 
 type Conf struct {
-	FontMaxSize     int    `yaml:"font_max_size"`
-	FontMinSize     int    `yaml:"font_min_size"`
-	RandomPlacement bool   `yaml:"random_placement"`
-	FontFile        string `yaml:"font_file"`
+	FontMaxSize     int  `yaml:"font_max_size"`
+	FontMinSize     int  `yaml:"font_min_size"`
+	RandomPlacement bool `yaml:"random_placement"`
+	FontFile        []byte
 	Colors          []color.RGBA
 	BackgroundColor color.RGBA `yaml:"background_color"`
 	Width           int
@@ -52,7 +56,7 @@ var DefaultConf = Conf{
 	FontMaxSize:     700,
 	FontMinSize:     10,
 	RandomPlacement: false,
-	FontFile:        "./fonts/roboto/Roboto-Regular.ttf",
+	FontFile:        fontBytes,
 	Colors:          DefaultColors,
 	BackgroundColor: color.RGBA{255, 255, 255, 255},
 	Width:           4096,
