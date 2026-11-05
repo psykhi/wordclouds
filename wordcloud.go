@@ -4,6 +4,7 @@ import (
 	"image"
 	"math"
 	"math/rand"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 )
 
@@ -31,7 +33,9 @@ type Wordcloud struct {
 	height          float64
 	opts            Options
 	circles         map[float64]*circle
-	fonts           map[float64]font.Face
+	font            *truetype.Font // parsed once, shared by all faces
+	face            font.Face      // face for faceSize; only the current size is kept
+	faceSize        float64
 	radii           []float64
 }
 
@@ -93,6 +97,15 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 
 	rand.Seed(time.Now().UnixNano())
 
+	fontBytes, err := os.ReadFile(opts.FontFile)
+	if err != nil {
+		panic(err)
+	}
+	f, err := truetype.Parse(fontBytes)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Wordcloud{
 		wordList:        wordList,
 		sortedWordList:  sortedWordList,
@@ -103,7 +116,7 @@ func NewWordcloud(wordList map[string]int, options ...Option) *Wordcloud {
 		height:          float64(opts.Height),
 		opts:            opts,
 		circles:         circles,
-		fonts:           make(map[float64]font.Face),
+		font:            f,
 		radii:           radii,
 	}
 }
@@ -128,18 +141,24 @@ func (w *Wordcloud) getPreciseBoundingBoxes(b *Box) []*Box {
 	return res
 }
 
+// glyphCacheEntries bounds the per-face glyph mask cache. truetype's default
+// (512) preallocates maxGlyphWidth*maxGlyphHeight*512 bytes per face, where the
+// max glyph size comes from the font-wide bounding box. That is ~100MB for a
+// 300px Roboto face and several GB for large CJK fonts. Each word is drawn
+// once, so a small cache is enough.
+const glyphCacheEntries = 1
+
 func (w *Wordcloud) setFont(size float64) {
-	_, ok := w.fonts[size]
-
-	if !ok {
-		f, err := gg.LoadFontFace(w.opts.FontFile, size)
-		if err != nil {
-			panic(err)
-		}
-		w.fonts[size] = f
+	// Words are placed in decreasing size order, so equal sizes are consecutive:
+	// keeping only the current face lets earlier faces be garbage collected.
+	if w.face == nil || w.faceSize != size {
+		w.face = truetype.NewFace(w.font, &truetype.Options{
+			Size:              size,
+			GlyphCacheEntries: glyphCacheEntries,
+		})
+		w.faceSize = size
 	}
-
-	w.dc.SetFontFace(w.fonts[size])
+	w.dc.SetFontFace(w.face)
 }
 
 func (w *Wordcloud) Place(wc wordCount) bool {
